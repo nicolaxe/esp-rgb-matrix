@@ -4,7 +4,7 @@
 #include "ESP8266WiFi.h"
 #include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
-#include <Math.h>
+#include <math.h>
 #include <LittleFS.h>
 #include <FS.h>
 
@@ -1057,15 +1057,8 @@ void loop() {
     if (animation == ANIMATION_NONE) {
       int secs = (millis() - last_activity) / 1000;
       if (secs > AUTO_ANIMATION_SECS) {
-        last_activity = millis();
-        startAnimation(memory.animation);
-        oledText(0,56,"  ");
-      } else {
-        sprintf(small_buffer, "%02d", AUTO_ANIMATION_SECS - secs);
-        if (AUTO_ANIMATION_SECS - secs < AUTO_ANIMATION_SECS/2)
-          oledText(0,56,small_buffer);
-        else
-          oledText(0,56,"  ");
+        pixels.clear();
+        pixels.show();
       }
     }
     else 
