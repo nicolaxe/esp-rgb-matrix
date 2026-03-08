@@ -25,8 +25,8 @@ def get_gpu_percent_win():
     return load
 
 def get_gpu_percent_linux(): # Definetly works on AMD and should work on intel. Nvidia might not work
-    file = open("/sys/class/drm/card1/device/gpu_busy_percent", 'r')
-    return(int(file.read()))
+    with open("/sys/class/drm/card1/device/gpu_busy_percent", 'r') as file:
+        return(int(file.read()))
 
 def get_gpu_percent():
     if sys.platform == "linux":
@@ -35,7 +35,7 @@ def get_gpu_percent():
         return(get_gpu_percent_win())
     else:
         print("GPU unsupported on this OS")
-        return(None)
+        return None 
     
 def calculate_bar_color(usage_percent):
     h = (1 / (1 + math.exp(10 * (usage_percent/100 - 0.5)))) * 0.3 #A non-linear curve. Steeper neer the center and slower near the ends because all the yellows look the same
@@ -60,7 +60,7 @@ def get_percent_text(percent):
     elif percent > 99:
          return("99")
     else:
-         return(str(percent))
+         return str(percent) 
     
 def create_text_mask(text, img, x, y, font): # Some horrible stuff needed to workaround pillow's antialiasing which was messing up text colors and can't be disabled
     mask = Image.new("1", img.size, 0)
