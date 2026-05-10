@@ -1,27 +1,30 @@
 import cv2
-import sys
 import time
 import subprocess
+import argparse
 
 from numpy import ndarray, average
 from rgb_array import RgbArray
 from pathlib import Path
 
+parser = argparse.ArgumentParser()
 
-rgb = RgbArray('192.168.1.134')
+parser.add_argument('file', help='media file to play')
+parser.add_argument('-a', '--audio', action='store_true', help='play audio locally (requires mpv)')
+parser.add_argument('-l', '--local', action='store_true', help='play video locally (requires mpv)' )
 
-if len(sys.argv) != 2:
-    print('Incorrect arguments')
-    exit()
+args = parser.parse_args()
 
-if not Path(sys.argv[1]).exists():
+if not Path(args.file).exists():
     print('File not found')
     exit()
 
-cap = cv2.VideoCapture(sys.argv[1])
+cap = cv2.VideoCapture(args.file)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 32)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 32)
 frame_time = 1/cap.get(cv2.CAP_PROP_FPS)
+
+rgb = RgbArray('192.168.1.134')
 
 
 def srgb2lin(x: float) -> float:
@@ -32,7 +35,7 @@ def srgb2lin(x: float) -> float:
     
 
 def conv(x: float, avg: float) -> int:
-    y = srgb2lin(float(x) / 255) ** (0.75 *avg + 0.5)
+    y = srgb2lin(float(x) / 255) ** (0.75 * avg + 0.5)
 
     return min(255, int(y * 127))
 
@@ -54,11 +57,19 @@ class FakeImage:
         return (r, g, b)
 
 try:
-    mpv_process = subprocess.Popen(['mpv', '--no-video', sys.argv[1]], 
+    if args.audio or args.local:
+        params = ['mpv', args.file, '--osc=no', '--no-input-default-bindings', '--config=no']
+        if not args.local:
+            params.append('--no-video')
+        if not args.audio:
+            params.append('--no-audio')
+        mpv_process = subprocess.Popen(params, 
                                 stdout=subprocess.DEVNULL,
                                 stderr=subprocess.DEVNULL,
                                 stdin=subprocess.DEVNULL,
                                 start_new_session=True)
+    else:
+        mpv_process = None
 except:
     print('Failed to open mpv')
     mpv_process = None
@@ -78,6 +89,11 @@ try:
 
         end = time.perf_counter()
         diff = end - start
+
+        if mpv_process:
+            if mpv_process.poll() is not None:
+                print('mpv exited. Exiting ...')
+                exit()
 
         if diff > frame_time:
             print('Can\'t keep up. Frame took longer then frametime')
