@@ -53,11 +53,15 @@ class FakeImage:
         
         return (r, g, b)
 
-mpv_process = subprocess.Popen(['mpv', '--no-video', sys.argv[1]], 
+try:
+    mpv_process = subprocess.Popen(['mpv', '--no-video', sys.argv[1]], 
                                 stdout=subprocess.DEVNULL,
                                 stderr=subprocess.DEVNULL,
                                 stdin=subprocess.DEVNULL,
                                 start_new_session=True)
+except:
+    print('Failed to open mpv')
+    mpv_process = None
 
 try:
     while cap.isOpened():
@@ -80,7 +84,8 @@ try:
         else:
             time.sleep(frame_time - diff)
 finally:
-    mpv_process.terminate()
+    if mpv_process:
+        mpv_process.terminate()
     cap.release()
     cv2.destroyAllWindows()
     
