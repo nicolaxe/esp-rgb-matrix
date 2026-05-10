@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 from numpy import ndarray, average
 import time
-from math import sqrt, log
+import subprocess
 
 
 rgb = RgbArray('192.168.1.134')
@@ -56,7 +56,11 @@ def conv(x: float, avg: float) -> int:
 #     return int(x * 255)
 
     
-
+mpv_process = subprocess.Popen(['mpv', '--no-video', sys.argv[1]], 
+                               stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL,
+    stdin=subprocess.DEVNULL,
+    start_new_session=True)
 class FakeImage:
     def __init__(self, frame: ndarray) -> None:
         self.frame = frame
@@ -64,7 +68,7 @@ class FakeImage:
 
     def getpixel(self, pos: tuple[int, int]) -> tuple[int, int, int]:
         b, g, r = self.frame[pos[1]][pos[0]]
-        print(self.avg)
+        #print(self.avg)
 
         
         r = conv(r, self.avg)
@@ -74,32 +78,34 @@ class FakeImage:
         return (r, g, b)
 
 
-
-while cap.isOpened():
-    start = time.perf_counter()
-    status, frame = cap.read()
- 
-    # if frame is read correctly ret is True
-    if not status:
-        print("Can't receive frame (stream end?). Exiting ...")
-        break
+try:
+    while cap.isOpened():
+        start = time.perf_counter()
+        status, frame = cap.read()
     
-    frame = cv2.resize(frame, (32, 32))
-    #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    image = FakeImage(frame)
-    rgb.send_image_udp(image)
-    cv2.imshow('frame', cv2.resize(frame, (256, 256)))
+        # if frame is read correctly ret is True
+        if not status:
+            print("Can't receive frame (stream end?). Exiting ...")
+            break
+        
+        frame = cv2.resize(frame, (32, 32))
+        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image = FakeImage(frame)
+        rgb.send_image_udp(image)
+        #cv2.imshow('frame', cv2.resize(frame, (256, 256)))
+        
+        if cv2.waitKey(1) == ord('q'):
+            break
+
+        end = time.perf_counter()
+        diff = end - start
+        #print(diff)
+        if diff > frame_time:
+            print('Can\'t keep up. Frame took longer then frametime')
+        else:
+            time.sleep(frame_time - diff)
+finally:
+    mpv_process.terminate()
+    cap.release()
+    cv2.destroyAllWindows()
     
-    if cv2.waitKey(1) == ord('q'):
-        break
-
-    end = time.perf_counter()
-    diff = end - start
-    #print(diff)
-    if diff > frame_time:
-        print('Can\'t keep up. Frame took longer then frametime')
-    else:
-        time.sleep(frame_time - diff)
-
-cap.release()
-cv2.destroyAllWindows()
