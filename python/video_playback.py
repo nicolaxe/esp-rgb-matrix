@@ -3,7 +3,7 @@ import time
 import subprocess
 import argparse
 
-from numpy import ndarray, average
+import numpy as np
 from rgb_array import RgbArray
 from pathlib import Path
 
@@ -17,6 +17,9 @@ args = parser.parse_args()
 
 if not Path(args.file).exists():
     print('File not found')
+    exit()
+elif not Path(args.file).is_file():
+    print('Not a file')
     exit()
 
 cap = cv2.VideoCapture(args.file)
@@ -41,9 +44,9 @@ def conv(x: float, avg: float) -> int:
 
 
 class FakeImage:
-    def __init__(self, frame: ndarray) -> None:
+    def __init__(self, frame: np.ndarray) -> None:
         self.frame = frame
-        self.avg = average(frame) / 255
+        self.avg = np.average(frame) / 255
 
     def getpixel(self, pos: tuple[int, int]) -> tuple[int, int, int]:
         b, g, r = self.frame[pos[1]][pos[0]]
@@ -83,7 +86,7 @@ try:
             print("Can't receive frame (stream end?). Exiting ...")
             break
         
-        frame = cv2.resize(frame, (32, 32))
+        frame = cv2.resize(frame, (32, 32), interpolation=cv2.INTER_AREA)
         image = FakeImage(frame)
         rgb.send_image_udp(image)
 
@@ -104,4 +107,5 @@ finally:
         mpv_process.terminate()
     cap.release()
     cv2.destroyAllWindows()
+    rgb.send_image_udp(FakeImage(np.zeros((32, 32, 3), dtype=np.uint8)))
     
